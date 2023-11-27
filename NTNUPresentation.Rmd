@@ -1,0 +1,285 @@
+---
+title: "Medical Statistician Presentation"
+subtitle: "NTNU Interview Case" 
+author: "Artem Shiryaev"
+date: "2023-11-26"
+output: beamer_presentation
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Research Problem
+
+Vi skal genomföre en klinisk studie på nydiagnostiserte pasienter med myelomatose hvor vi ska sammenlign standardbehandling med en ny kombinasjon av experimentella medikamenter.
+
+
+Fra tidigare studier kan forvente:
+
+- Standard: 50$\%$ minimal residual disease (MRD)
+
+Forskargruppe tror att vi kan oppnå en klinisk signifikant bedring om:
+
+- Experimentell: 70$\%$ minimal residual disease (MRD)
+
+Med andre ord, jo mindre kreft, desto bedre.
+
+## Statistical Analys
+
+Head of the Research team thinks: Data costs money,
+
+Hvor mange patienter trenger studien vår, med $80\%$ power og signifikansnivå på 5 %?
+
+## Resultat
+Beste fall: total 182 patienter, 91 vardera gruppe (standard/experiment)
+Verste fall: 231
+Details:
+
+| Test          | Same | Different | Assumptions |
+|:-------------:|:-----:|:----------:|:------------:|
+| Two Sample Z  |91 + 91|    -    | Normality, iid|
+| Two Sample T  |   93 + 93 |  180 + 63 | Approx. Normal, iid |
+| Mann-Whitney U  |   99 + 99 |  -    | Non-parametric, iid, effect size $\approx$ 0.41|
+|Chi$^2$ ($df=90$)| 231 | -  | Z scores for df |
+
+
+
+
+```{r, echo=TRUE, include=FALSE}
+library(pwr)
+library(pwrss)
+library(ggplot2)
+library(scales)
+
+
+Prop_DrugA <- 0.5 
+Prop_DrugB <- 0.7
+
+Alpha <- 0.05 # Significance Level
+Beta <- 0.8   # Power Level
+
+# Difference between Two Proportions (z Test)
+z_prop <- pwrss.z.2props(p1 = Prop_DrugA,
+                         p2 = Prop_DrugB,
+                         alternative = "not equal",
+                         power = Beta,
+                         alpha = Alpha
+  
+)
+
+
+# Effect Size using Binomial Transform
+h_prop <- 2*asin(sqrt(Prop_DrugA)) - 2*asin(sqrt(Prop_DrugB))
+
+# Power calculation for two proportions (same sample sizes)
+two_test <-pwr.2p.test(h=round(h_prop, digits = 2), 
+                       sig.level = Alpha,
+                       power = Beta,
+                       alternative = "two.sided")
+
+
+# Power Calculation for two proportions (different sizes)
+diff_size <- pwr.2p2n.test(h=round(h_prop, digits = 2),
+                           n1 = 180,
+                           power =  Beta,
+                           sig.level = Alpha,
+                           alternative="two.sided")
+
+chi2_tst <- pwr.chisq.test(w = (-1)*round(h_prop, digits = 2),
+                           N = NULL,
+                           df = (91-1)*(2-1),#(r-1)(c-1),
+                           sig.level = 0.05,
+                           power = 0.8
+  
+)
+
+
+
+# Power calculations for t-tests of means (one sample, two samples and paired samples)
+t_test_2means <- pwr.t.test(d = round(h_prop, digits = 2),
+                          sig.level = Alpha,
+                          power = Beta,
+                          type = "two.sample") 
+
+
+
+# Power calculations for two samples (different sizes) t-tests of means
+t.test_diff_means <- pwr.t2n.test(n1 = 180,
+                                  d = round(h_prop, digits = 2),
+                                  sig.level = Alpha,
+                                  power = Beta,
+                                  alternative = "two.sided")
+
+
+# Difference between Two Groups (Non-parametric Tests for Independent and Paired Samples)
+np_prop <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
+                            mu2 = 0,
+                            alternative = "not equal",
+                            power = Beta,
+                            alpha = Alpha,
+                            distribution = "normal"
+                            )
+
+
+
+
+```
+
+## Graphical Results Z Test
+```{r, echo = F}
+# Power calculation for two proportions (same sample sizes)
+plot(z_prop)
+#plot.power.htest(z_prop, main = "Two proportions Z test (same sample sizes)")
+```
+
+<!-- ## Graphical Results Student t-test -->
+<!-- ```{r, echo = F} -->
+<!-- # Power calculations for t-tests of means (one sample, two samples and paired samples) -->
+<!-- plot.power.htest(t_test_2means, main = "Two means (same sample sizes)") -->
+<!-- ``` -->
+
+
+
+<!-- ## Graphical Results Student t-test -->
+<!-- ```{r, echo = F} -->
+<!-- # Power calculations for two samples (different sizes) t-tests of means -->
+<!-- plot.power.htest(t.test_diff_means , main = "Two means (different sample sizes)") -->
+<!-- ``` -->
+
+
+
+## Graphical Results Student t-test
+```{r, echo = F}
+# Power calculation for two proportions (same sample sizes)
+plot.power.htest(two_test, main = "Two proportions (same sample sizes)")
+```
+
+## Graphical Results Student t-test
+```{r, echo = F}
+# Power Calculation for two proportions (different sizes)
+plot.power.htest(diff_size, main = "Two proportions (different sample sizes)")
+```
+
+
+
+## Graphical Results Chi$^2$
+```{r, echo = F}
+# Power Calculation for two proportions (different sizes)
+plot.power.htest(chi2_tst, main = "Chi^2 Power Calculation")
+```
+
+
+## Code
+
+
+
+```{r, echo=TRUE, include=TRUE}
+library(pwr)
+library(pwrss)
+library(ggplot2)
+library(scales)
+
+
+Prop_DrugA <- 0.5 
+Prop_DrugB <- 0.7
+
+Alpha <- 0.05 # Significance Level
+Beta <- 0.8   # Power Level
+
+# Difference between Two Proportions (z Test)
+z_prop <- pwrss.z.2props(p1 = Prop_DrugA,
+                         p2 = Prop_DrugB,
+                         alternative = "not equal",
+                         power = Beta,
+                         alpha = Alpha
+  
+)
+
+
+# Effect Size using Binomial Transform
+h_prop <- 2*asin(sqrt(Prop_DrugA)) - 2*asin(sqrt(Prop_DrugB))
+
+# Power calculation for two proportions (same sample sizes)
+two_test <-pwr.2p.test(h=round(h_prop, digits = 2), 
+                       sig.level = Alpha,
+                       power = Beta,
+                       alternative = "two.sided")
+
+
+# Power Calculation for two proportions (different sizes)
+diff_size <- pwr.2p2n.test(h=round(h_prop, digits = 2),
+                           n1 = 180,
+                           power =  Beta,
+                           sig.level = Alpha,
+                           alternative="two.sided")
+
+chi2_tst <- pwr.chisq.test(w = (-1)*round(h_prop, digits = 2),
+                           N = NULL,
+                           df = (91-1)*(2-1),#(r-1)(c-1),
+                           sig.level = 0.05,
+                           power = 0.8
+  
+)
+
+
+
+# Difference between Two Groups (Non-parametric Tests for Independent and Paired Samples)
+np_prop <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
+                            mu2 = 0,
+                            alternative = "not equal",
+                            power = Beta,
+                            alpha = Alpha,
+                            distribution = "normal"
+                            )
+
+```
+
+
+
+
+
+## Analytical Calculation: Z-tests
+
+\[H_0 : p_1 = p_2\]
+\[H_1 : p_1 \neq p_2 \]
+
+To determine the sample size needed for a study comparing two proportions use  two-sample proportion test. The formula is:
+\[Z = \frac{(p_1 - p_2 )}{\sqrt{\frac{p_1 (1-p_1 )}{n_1 } + \frac{p_2 ( 1-p_2 )}{n_2 }}}\]
+Simplified to, given \( n_1 = n_2 = n\):
+\[ n = \frac{{(p_1(1 - p_1) + p_2(1 - p_2))(Z_\alpha + Z_\beta)^2}}{{(p_1 - p_2)^2}} \]
+
+## Analytical Calculation: Z-tests
+
+\( p_1 \) is the reduction in MRD for Drug A (50$\%$, or 0.5).
+\(  p_2 \) is the targeted reduction in MRD for Drug B (70$\%$, or 0.7).
+\(  Z_\alpha \) is the Z-score for a $5\%$ significance level (approximately 1.96).
+\(  Z_\beta \) is the Z-score for an 80$\%$ power (approximately 0.84). 
+
+
+
+## Analytical Calculation: Z-tests
+
+Substitute these values into the formula to calculate \( n \):
+
+\[ n = \frac{{(0.5 \times 0.5 + 0.7 \times 0.3)(1.96 + 0.84)^2}}{{(0.5 - 0.7)^2}} \]
+
+Now, calculate the result. 
+
+\[ n = \frac{{(0.25 + 0.21)(2.8)^2}}{{0.04}} \]
+
+\[ n = \frac{{0.46 \times 7.84}}{{0.04}} \]
+
+\[ n = \frac{{3.6064}}{{0.04}} \]
+
+\[ n = 90.16 \]
+\[ n \approx 91\]
+
+## Analytical Calculation: Student t-test
+
+test
+
+
+
+
