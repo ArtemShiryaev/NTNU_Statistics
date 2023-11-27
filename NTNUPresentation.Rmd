@@ -2,7 +2,7 @@
 title: "Medical Statistician Presentation"
 subtitle: "NTNU Interview Case" 
 author: "Artem Shiryaev"
-date: "2023-11-26"
+date: "2023-11-28"
 output: beamer_presentation
 always_allow_html: true
 ---
@@ -32,10 +32,21 @@ Head of the Research team thinks: Data costs money,
 
 Hvor mange patienter trenger studien vår, med $80\%$ power og signifikansnivå på 5 %?
 
-## Resultat
-Beste fall: total 182 patienter, 91 vardera gruppe (standard/experiment)
-Verste fall: 231
-Details:
+## Resultat beroende data (paired/dependent data)
+Beste fall: total 98 patienter, 49 vardera gruppe\
+Verste fall: 102\
+
+
+| Test          | Same  | Assumptions |
+|:-------------:|:-----:|:----------:|
+| Two Sample T  | 49 + 49  | Approx. Normal, iid |
+|  Wilcoxon signed-rank Test |   51 + 51 | Non-parametric, iid, effect size $\approx$ 0.41|
+
+
+## Resultat oberoende data (independent data)
+Beste fall: total 182 patienter, 91 vardera gruppe\
+Verste fall: 231\
+
 
 | Test          | Same | Different | Assumptions |
 |:-------------:|:-----:|:----------:|:------------:|
@@ -43,6 +54,7 @@ Details:
 | Two Sample T  |   93 + 93 |  180 + 63 | Approx. Normal, iid |
 | Mann-Whitney U  |   99 + 99 |  -    | Non-parametric, iid, effect size $\approx$ 0.41|
 |Chi$^2$ ($df=90$)| 231 | -  | Z scores for df |
+
 
 
 
@@ -122,8 +134,27 @@ np_prop <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
                             distribution = "normal"
                             )
 
+# Paired samples
+
+paired_t <- pwrss.t.2means(mu1 = round(h_prop, digits = 2),
+                           alternative = "not equal",
+                           paired = TRUE,
+                           paired.r = 0.5,
+                           alpha = Alpha,
+                           power = Beta
+  
+)
 
 
+paired_np_2groups <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
+                            mu2 = 0,
+                            paired = TRUE,
+                            paired.r = 0.5,
+                            alternative = "not equal",
+                            power = Beta,
+                            alpha = Alpha,
+                            distribution = "normal"
+                            )
 
 ```
 
@@ -173,69 +204,7 @@ plot.power.htest(chi2_tst, main = "Chi^2 Power Calculation")
 
 ## Code
 
-
-
-```{r, echo=TRUE, include=TRUE}
-library(pwr)
-library(pwrss)
-library(ggplot2)
-library(scales)
-
-
-Prop_DrugA <- 0.5 
-Prop_DrugB <- 0.7
-
-Alpha <- 0.05 # Significance Level
-Beta <- 0.8   # Power Level
-
-# Difference between Two Proportions (z Test)
-z_prop <- pwrss.z.2props(p1 = Prop_DrugA,
-                         p2 = Prop_DrugB,
-                         alternative = "not equal",
-                         power = Beta,
-                         alpha = Alpha
-  
-)
-
-
-# Effect Size using Binomial Transform
-h_prop <- 2*asin(sqrt(Prop_DrugA)) - 2*asin(sqrt(Prop_DrugB))
-
-# Power calculation for two proportions (same sample sizes)
-two_test <-pwr.2p.test(h=round(h_prop, digits = 2), 
-                       sig.level = Alpha,
-                       power = Beta,
-                       alternative = "two.sided")
-
-
-# Power Calculation for two proportions (different sizes)
-diff_size <- pwr.2p2n.test(h=round(h_prop, digits = 2),
-                           n1 = 180,
-                           power =  Beta,
-                           sig.level = Alpha,
-                           alternative="two.sided")
-
-chi2_tst <- pwr.chisq.test(w = (-1)*round(h_prop, digits = 2),
-                           N = NULL,
-                           df = (91-1)*(2-1),#(r-1)(c-1),
-                           sig.level = 0.05,
-                           power = 0.8
-  
-)
-
-
-
-# Difference between Two Groups (Non-parametric Tests for Independent and Paired Samples)
-np_prop <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
-                            mu2 = 0,
-                            alternative = "not equal",
-                            power = Beta,
-                            alpha = Alpha,
-                            distribution = "normal"
-                            )
-
-```
-
+[Github link](https://github.com/ArtemShiryaev/NTNU_Statistics/blob/master/NTNU_Script.R)
 
 
 
@@ -252,9 +221,12 @@ Simplified to, given \( n_1 = n_2 = n\):
 
 ## Analytical Calculation: Z-tests
 
-\( p_1 \) is the reduction in MRD for Drug A (50$\%$, or 0.5).
-\(  p_2 \) is the targeted reduction in MRD for Drug B (70$\%$, or 0.7).
-\(  Z_\alpha \) is the Z-score for a $5\%$ significance level (approximately 1.96).
+\( p_1 \) is the reduction in MRD for Drug A (50$\%$, or 0.5).\
+
+\(  p_2 \) is the targeted reduction in MRD for Drug B (70$\%$, or 0.7).\
+
+\(  Z_\alpha \) is the Z-score for a $5\%$ significance level (approximately 1.96).\
+
 \(  Z_\beta \) is the Z-score for an 80$\%$ power (approximately 0.84). 
 
 
@@ -278,7 +250,36 @@ Now, calculate the result.
 
 ## Analytical Calculation: Student t-test
 
-test
+
+Start with the formula for the t-statistic in the two-sample proportion t-test:
+
+\[ t = \frac{(\hat{p}_1 - \hat{p}_2 )}{\sqrt{\frac{\hat{p}_1 (1-\hat{p}_1 )}{n_1 } + \frac{\hat{p}_2 ( 1-\hat{p}_2 )}{n_2 }}} \]
+
+For the t-test, the formula is:
+
+\[ n = \frac{{(t_{\alpha/2, df} + t_\beta)^2 \times (p_1(1 - p_1) + p_2(1 - p_2))}}{{(p_1 - p_2)^2}} \]
+
+\(\hat{p}_1\) and \(\hat{p}_2\) are the sample proportions for Group 1 and Group 2, 
+ \( \hat{p}_1 = 0.5 \) (for Drug A),\
+ \( \hat{p}_2 = 0.7 \) (for Drug B),\
+ Degrees of freedom (\( df \)) for the t-distribution: \( df = 2n - 2 \),\
+\( t_{\alpha/2, df} \) and \( t_\beta \) from the t-distribution tables.
+
+
+## Analytical Calculation: Student t-test
+
+\[ n = \frac{{(1.97 + 0.85)^2 \times (0.5(1 - 0.5) + 0.7(1 - 0.7))}}{{(0.5 - 0.7)^2}} \]
+
+\[ n \approx \frac{{(2.82)^2 \times (0.25 + 0.21)}}{{0.04}} \]
+
+\[ n \approx \frac{{(7.9524) \times (0.46)}}{{0.04}} \]
+
+\[ n \approx \frac{{3.656704}}{{0.04}} \]
+
+\[ n \approx 91.42 \]
+\[ n \approx 92 \]
+
+
 
 
 
