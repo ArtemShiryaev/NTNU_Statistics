@@ -13,51 +13,47 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Research Problem
 
-Vi skal genomföre en klinisk studie på nydiagnostiserte pasienter med myelomatose hvor vi ska sammenlign standardbehandling med en ny kombinasjon av experimentella medikamenter.
-
+- Klinisk studie på nydiagnostiserte pasienter med myelomatose
 
 Fra tidigare studier kan forvente:
 
-- Standard: 50$\%$ minimal residual disease (MRD)
+- ARM A: 50$\%$ minimal residual disease (MRD)
 
-Forskargruppe tror att vi kan oppnå en klinisk signifikant bedring om:
+Klinisk signifikant bedring om:
 
-- Experimentell: 70$\%$ minimal residual disease (MRD)
+- ARM B: 70$\%$ minimal residual disease (MRD)
 
-Med andre ord, jo mindre kreft, desto bedre.
 
-## Statistical Analys
 
-Head of the Research team thinks: Data costs money,
+## Statistical Question
 
 Hvor mange patienter trenger studien vår, med $80\%$ power og signifikansnivå på 5 %?
 
-## Resultat beroende data (paired/dependent data)
-Beste fall: total 98 patienter, 49 vardera gruppe\
-Verste fall: 102\
+\[H_0 : p_1 = p_2 \]
+\[H_1 : p_1 > p_2\]
+
+\( p_1 = 0.7, p_2 = 0.5\)
 
 
-| Test          | Same  | Assumptions |
-|:-------------:|:-----:|:----------:|
-| Two Sample T  | 49 + 49  | Approx. Normal, iid |
-|  Wilcoxon signed-rank Test |   51 + 51 | Non-parametric, iid, effect size $\approx$ 0.41|
+|                       | Decision: H0 True          | Decision: H0 False         |
+|-----------------------|---------------------------|----------------------------|
+| **Null Hypothesis**   | Correct \ (True Negative)   | Type I Error\  (Reject True H0, $\alpha$) |
+| **Alternative Hypothesis**  | Type II Error\ (Fail to reject H0, $\beta$)   | Correct\ (True Positive)   |
 
 
-## Resultat oberoende data (independent data)
-Beste fall: total 182 patienter, 91 vardera gruppe\
-Verste fall: 231\
+## Statistical Question
 
+Hvor mange patienter trenger studien vår, med $80\%$ power og signifikansnivå på 5 %?
 
-| Test          | Same | Different | Assumptions |
-|:-------------:|:-----:|:----------:|:------------:|
-| Two Sample Z  |91 + 91|    -    | Normality, iid|
-| Two Sample T  |   93 + 93 |  180 + 63 | Approx. Normal, iid |
-| Mann-Whitney U  |   99 + 99 |  -    | Non-parametric, iid, effect size $\approx$ 0.41|
-|Chi$^2$ ($df=90$)| 231 | -  | Z scores for df |
+\[H_0 : p_1 = p_2\]
+\[H_1 : p_1 > p_2 \]
 
+\( p_1 = 0.7, p_2 = 0.5\)
 
-
-
+- Two proportion Z test
+- Two sample proportion t-test
+- Mann-Whitney U test
+- Chi squared test
 
 ```{r, echo=TRUE, include=FALSE}
 library(pwr)
@@ -75,7 +71,7 @@ Beta <- 0.8   # Power Level
 # Difference between Two Proportions (z Test)
 z_prop <- pwrss.z.2props(p1 = Prop_DrugA,
                          p2 = Prop_DrugB,
-                         alternative = "not equal",
+                         alternative = "greater",
                          power = Beta,
                          alpha = Alpha
   
@@ -86,22 +82,22 @@ z_prop <- pwrss.z.2props(p1 = Prop_DrugA,
 h_prop <- 2*asin(sqrt(Prop_DrugA)) - 2*asin(sqrt(Prop_DrugB))
 
 # Power calculation for two proportions (same sample sizes)
-two_test <-pwr.2p.test(h=round(h_prop, digits = 2), 
+two_test <-pwr.2p.test(h=(-1)*round(h_prop, digits = 2), 
                        sig.level = Alpha,
                        power = Beta,
-                       alternative = "two.sided")
+                       alternative = "greater")
 
 
 # Power Calculation for two proportions (different sizes)
-diff_size <- pwr.2p2n.test(h=round(h_prop, digits = 2),
-                           n1 = 180,
+diff_size <- pwr.2p2n.test(h=(-1)*round(h_prop, digits = 2),
+                           n1 = 140,
                            power =  Beta,
                            sig.level = Alpha,
-                           alternative="two.sided")
+                           alternative="greater")
 
 chi2_tst <- pwr.chisq.test(w = (-1)*round(h_prop, digits = 2),
                            N = NULL,
-                           df = (91-1)*(2-1),#(r-1)(c-1),
+                           df = (72-1)*(2-1),#(r-1)(c-1),
                            sig.level = 0.05,
                            power = 0.8
   
@@ -110,25 +106,26 @@ chi2_tst <- pwr.chisq.test(w = (-1)*round(h_prop, digits = 2),
 
 
 # Power calculations for t-tests of means (one sample, two samples and paired samples)
-t_test_2means <- pwr.t.test(d = round(h_prop, digits = 2),
+t_test_2means <- pwr.t.test(d = (-1)*round(h_prop, digits = 2),
                           sig.level = Alpha,
                           power = Beta,
-                          type = "two.sample") 
+                          type = "two.sample",
+                          alternative = "greater") 
 
 
 
 # Power calculations for two samples (different sizes) t-tests of means
-t.test_diff_means <- pwr.t2n.test(n1 = 180,
-                                  d = round(h_prop, digits = 2),
+t.test_diff_means <- pwr.t2n.test(n1 = 140,
+                                  d = (-1)*round(h_prop, digits = 2),
                                   sig.level = Alpha,
                                   power = Beta,
-                                  alternative = "two.sided")
+                                  alternative = "greater")
 
 
 # Difference between Two Groups (Non-parametric Tests for Independent and Paired Samples)
-np_prop <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
-                            mu2 = 0,
-                            alternative = "not equal",
+np_prop <- pwrss.np.2groups(mu1 = 0,
+                            mu2 = round(h_prop, digits = 2),
+                            alternative = "greater",
                             power = Beta,
                             alpha = Alpha,
                             distribution = "normal"
@@ -136,8 +133,9 @@ np_prop <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
 
 # Paired samples
 
-paired_t <- pwrss.t.2means(mu1 = round(h_prop, digits = 2),
-                           alternative = "not equal",
+paired_t <- pwrss.t.2means(mu2 = 0,
+                           mu1 = (-1)*round(h_prop, digits = 2),
+                           alternative = "greater",
                            paired = TRUE,
                            paired.r = 0.5,
                            alpha = Alpha,
@@ -146,11 +144,11 @@ paired_t <- pwrss.t.2means(mu1 = round(h_prop, digits = 2),
 )
 
 
-paired_np_2groups <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
+paired_np_2groups <- pwrss.np.2groups(mu1 = (-1)*round(h_prop, digits = 2),
                             mu2 = 0,
                             paired = TRUE,
                             paired.r = 0.5,
-                            alternative = "not equal",
+                            alternative = "greater",
                             power = Beta,
                             alpha = Alpha,
                             distribution = "normal"
@@ -158,126 +156,137 @@ paired_np_2groups <- pwrss.np.2groups(mu1 = round(h_prop, digits = 2),
 
 ```
 
-## Graphical Results Z Test
+## Grafiske resultat Z Test
 ```{r, echo = F}
 # Power calculation for two proportions (same sample sizes)
 plot(z_prop)
 #plot.power.htest(z_prop, main = "Two proportions Z test (same sample sizes)")
 ```
 
-<!-- ## Graphical Results Student t-test -->
-<!-- ```{r, echo = F} -->
-<!-- # Power calculations for t-tests of means (one sample, two samples and paired samples) -->
-<!-- plot.power.htest(t_test_2means, main = "Two means (same sample sizes)") -->
-<!-- ``` -->
 
 
 
-<!-- ## Graphical Results Student t-test -->
-<!-- ```{r, echo = F} -->
-<!-- # Power calculations for two samples (different sizes) t-tests of means -->
-<!-- plot.power.htest(t.test_diff_means , main = "Two means (different sample sizes)") -->
-<!-- ``` -->
 
-
-
-## Graphical Results Student t-test
+## Grafiske resultat Student t-test
 ```{r, echo = F}
 # Power calculation for two proportions (same sample sizes)
 plot.power.htest(two_test, main = "Two proportions (same sample sizes)")
 ```
 
-## Graphical Results Student t-test
-```{r, echo = F}
-# Power Calculation for two proportions (different sizes)
-plot.power.htest(diff_size, main = "Two proportions (different sample sizes)")
-```
+<!-- ## Grafiske resultat Student t-test -->
+<!-- ```{r, echo = F} -->
+<!-- # Power Calculation for two proportions (different sizes) -->
+<!-- plot.power.htest(diff_size, main = "Two proportions (different sample sizes)") -->
+<!-- ``` -->
 
 
 
-## Graphical Results Chi$^2$
+## Grafiske resultat Chi$^2$
 ```{r, echo = F}
 # Power Calculation for two proportions (different sizes)
 plot.power.htest(chi2_tst, main = "Chi^2 Power Calculation")
 ```
 
 
-## Code
-
-[Github link](https://github.com/ArtemShiryaev/NTNU_Statistics/blob/master/NTNU_Script.R)
 
 
+## Resultat oberoende data (independent data)
+Beste fall: total 142 patienter, 71 vardera gruppe\
+Verste fall: 209\
 
 
-## Analytical Calculation: Z-tests
+| Test          | Same | Different | Assumptions |
+|:-------------:|:-----:|:----------:|:------------:|
+| Two Sample Z  |71 + 71|    -    | Normality, iid|
+| Two Sample T  |   74 + 74 |  140 + 50 | Approx. Normal, iid |
+| Mann-Whitney U  |   78 + 78 |  -    | Non-parametric, iid, effect size $\approx$ 0.41|
+|Chi$^2$ ($df=70$)| 209 | -  | Z scores for df |
+
+
+## Resultat beroende data (paired/dependent data)
+Beste fall: total 78 patienter, 39 vardera gruppe\
+Verste fall: 80\
+
+
+| Test          | Same  | Assumptions |
+|:-------------:|:-----:|:----------:|
+| Two Sample T  | 39 + 39  | Approx. Normal, iid |
+|  Wilcoxon signed-rank Test |   40 + 40 | Non-parametric, iid, effect size $\approx$ 0.41|
+
+
+
+## Analytisk beregning: Z-tests
 
 \[H_0 : p_1 = p_2\]
-\[H_1 : p_1 \neq p_2 \]
+\[H_1 : p_1 > p_2 \]
 
-To determine the sample size needed for a study comparing two proportions use  two-sample proportion test. The formula is:
+Formula för two-sample proportion test;
 \[Z = \frac{(p_1 - p_2 )}{\sqrt{\frac{p_1 (1-p_1 )}{n_1 } + \frac{p_2 ( 1-p_2 )}{n_2 }}}\]
-Simplified to, given \( n_1 = n_2 = n\):
+Simplifierad to, givet\( n_1 = n_2 = n\):
 \[ n = \frac{{(p_1(1 - p_1) + p_2(1 - p_2))(Z_\alpha + Z_\beta)^2}}{{(p_1 - p_2)^2}} \]
 
 ## Analytical Calculation: Z-tests
 
-\( p_1 \) is the reduction in MRD for Drug A (50$\%$, or 0.5).\
+\( p_1 \)  MRD for ARM A (50$\%$, 0.5).\
 
-\(  p_2 \) is the targeted reduction in MRD for Drug B (70$\%$, or 0.7).\
+\(  p_2 \) MRD for ARM B (70$\%$,  0.7).\
 
-\(  Z_\alpha \) is the Z-score for a $5\%$ significance level (approximately 1.96).\
+\(  Z_\alpha \) för $5\%$ significance level (1.645).\
 
-\(  Z_\beta \) is the Z-score for an 80$\%$ power (approximately 0.84). 
+\(  Z_\beta \) för 80$\%$ power (0.84). 
 
 
 
-## Analytical Calculation: Z-tests
+## Analytisk beregning: Z-tests
 
-Substitute these values into the formula to calculate \( n \):
+Substituera värdena in i formula og beregna \( n \):
 
-\[ n = \frac{{(0.5 \times 0.5 + 0.7 \times 0.3)(1.96 + 0.84)^2}}{{(0.5 - 0.7)^2}} \]
+\[ n = \frac{{(0.5 \times 0.5 + 0.7 \times 0.3)(1.645 + 0.84)^2}}{{(0.5 - 0.7)^2}} \]
 
-Now, calculate the result. 
+Sedan,
 
-\[ n = \frac{{(0.25 + 0.21)(2.8)^2}}{{0.04}} \]
+\[ n = \frac{{(0.25 + 0.21)(2.485)^2}}{{0.04}} \]
 
-\[ n = \frac{{0.46 \times 7.84}}{{0.04}} \]
+\[ n = \frac{{0.46 \times 6,18}}{{0.04}} \]
 
 \[ n = \frac{{3.6064}}{{0.04}} \]
 
-\[ n = 90.16 \]
-\[ n \approx 91\]
+\[ n \approx 71\]
 
-## Analytical Calculation: Student t-test
+## Analytisk beregning: Student t-test
 
-
-Start with the formula for the t-statistic in the two-sample proportion t-test:
+Börja med forumlan för t-statistics two-sample proportion t-test:
 
 \[ t = \frac{(\hat{p}_1 - \hat{p}_2 )}{\sqrt{\frac{\hat{p}_1 (1-\hat{p}_1 )}{n_1 } + \frac{\hat{p}_2 ( 1-\hat{p}_2 )}{n_2 }}} \]
 
-For the t-test, the formula is:
+For \(n\), \
 
 \[ n = \frac{{(t_{\alpha/2, df} + t_\beta)^2 \times (p_1(1 - p_1) + p_2(1 - p_2))}}{{(p_1 - p_2)^2}} \]
 
-\(\hat{p}_1\) and \(\hat{p}_2\) are the sample proportions for Group 1 and Group 2, 
- \( \hat{p}_1 = 0.5 \) (for Drug A),\
- \( \hat{p}_2 = 0.7 \) (for Drug B),\
- Degrees of freedom (\( df \)) for the t-distribution: \( df = 2n - 2 \),\
-\( t_{\alpha/2, df} \) and \( t_\beta \) from the t-distribution tables.
+\(\hat{p}_1\) og \(\hat{p}_2\) er sample proportioner for 'gruppe' 1 og 2, 
+ \( \hat{p}_1 = 0.5 \) (for ARM A),\
+ \( \hat{p}_2 = 0.7 \) (for ARM B),\
+ Degrees of freedom (\( df \)) för t-distribution: \( df = 2n - 2 \),\
+\( t_{\alpha/2, df} \) and \( t_\beta \) fra t-distribution tables.
 
 
-## Analytical Calculation: Student t-test
+## Analytisk beregning: Student t-test
 
-\[ n = \frac{{(1.97 + 0.85)^2 \times (0.5(1 - 0.5) + 0.7(1 - 0.7))}}{{(0.5 - 0.7)^2}} \]
+\[ n = \frac{{(1.65 + 0.85)^2 \times (0.5(1 - 0.5) + 0.7(1 - 0.7))}}{{(0.5 - 0.7)^2}} \]
 
-\[ n \approx \frac{{(2.82)^2 \times (0.25 + 0.21)}}{{0.04}} \]
+\[ n \approx \frac{{(2.5)^2 \times (0.25 + 0.21)}}{{0.04}} \]
 
-\[ n \approx \frac{{(7.9524) \times (0.46)}}{{0.04}} \]
+\[ n \approx \frac{{(6,25) \times (0.46)}}{{0.04}} \]
 
-\[ n \approx \frac{{3.656704}}{{0.04}} \]
+\[ n \approx \frac{{2.875}}{{0.04}} \]
 
-\[ n \approx 91.42 \]
-\[ n \approx 92 \]
+\[ n \approx 72 \]
+
+
+
+## R Code
+
+[Github link](https://github.com/ArtemShiryaev/NTNU_Statistics/blob/master/NTNU_Script.R)
 
 
 
